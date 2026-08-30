@@ -1,0 +1,167 @@
+// Envanter ve Zimmet Takip Sistemi - veri modeli
+// Prisma 7 / SQLite (uretim icin PostgreSQL'e gecis README'de anlatilmistir)
+//
+// Not: SQLite enum tipini desteklemedigi icin durum/tip alanlari String tutulur.
+// Gecerli degerler src/lib/sabitler.ts icinde tek yerden tanimlidir.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// Fiziksel yerlesim birimi: bina, kat, oda
+model Lokasyon {
+  id         Int      @id @default(autoincrement())
+  ad         String   @unique
+  bina       String?
+  kat        String?
+  aciklama   String?
+  olusturma  DateTime @default(now())
+  guncelleme DateTime @updatedAt
+
+  personeller Personel[]
+  cihazlar    Cihaz[]
+}
+
+/// Organizasyon birimi: Muhasebe, Yurtici Satis, Uretim vb.
+model Departman {
+  id         Int      @id @default(autoincrement())
+  ad         String   @unique
+  kod        String?  @unique
+  aciklama   String?
+  olusturma  DateTime @default(now())
+  guncelleme DateTime @updatedAt
+
+  personeller Personel[]
+  cihazlar    Cihaz[]
+}
+
+/// Cihaz ve lisans zimmetlenen calisan
+model Personel {
+  id             Int       @id @default(autoincrement())
+  sicilNo        String    @unique
+  ad             String
+  soyad          String
+  eposta         String?   @unique
+  telefon        String?
+  unvan          String?
+  aktif          Boolean   @default(true)
+  iseGirisTarihi DateTime?
+
+  departmanId Int?
+  departman   Departman? @relation(fields: [departmanId], references: [id], onDelete: SetNull)
+  lokasyonId  Int?
+  lokasyon    Lokasyon?  @relation(fields: [lokasyonId], references: [id], onDelete: SetNull)
+
+  cihazlar          Cihaz[]
+  lisansAtamalari   LisansAtama[]
+  zimmetHareketleri ZimmetHareketi[]
+
+  olusturma  DateTime @default(now())
+  guncelleme DateTime @updatedAt
+
+  @@index([departmanId])
+  @@index([lokasyonId])
+  @@index([aktif])
+}
+
+/// Envantere kayitli donanim: bilgisayar, yazici, kamera, ag cihazi, tezgah vb.
+model Cihaz {
+  id           Int     @id @default(autoincrement())
+  envanterKodu String  @unique
+  tip          String
+  marka        String
+  model        String
+  seriNo       String? @unique
+  ipAdresi     String?
+  macAdresi    String?
+  durum        String  @default("DEPODA")
+
+  alimTarihi     DateTime?
+  garantiBitis   DateTime?
+  sonBakimTarihi DateTime?
+  sonrakiBakim   DateTime?
+  notlar         String?
+
+  departmanId       Int?
+  departman         Departman? @relation(fields: [departmanId], references: [id], onDelete: SetNull)
+  lokasyonId        Int?
+  lokasyon          Lokasyon?  @relation(fields: [lokasyonId], references: [id], onDelete: SetNull)
+  zimmetliPersonelId Int?
+  zimmetliPersonel   Personel? @relation(fields: [zimmetliPersonelId], references: [id], onDelete: SetNull)
+
+  lisansAtamalari   LisansAtama[]
+  zimmetHareketleri ZimmetHareketi[]
+
+  olusturma  DateTime @default(now())
+  guncelleme DateTime @updatedAt
+
+  @@index([durum])
+  @@index([tip])
+  @@index([lokasyonId])
+  @@index([departmanId])
+  @@index([zimmetliPersonelId])
+  @@index([sonrakiBakim])
+}
+
+/// Yazilim lisansi: Windows, SolidWorks, Office vb.
+model Lisans {
+  id            Int       @id @default(autoincrement())
+  urunAdi       String
+  uretici       String
+  surum         String?
+  lisansAnahtari String?  @unique
+  tip           String    @default("RETAIL")
+  toplamKoltuk  Int       @default(1)
+  baslangicTarihi DateTime?
+  bitisTarihi     DateTime?
+  satinAlmaBedeli Float?
+  paraBirimi      String? @default("TRY")
+  notlar          String?
+
+  atamalar LisansAtama[]
+
+  olusturma  DateTime @default(now())
+  guncelleme DateTime @updatedAt
+
+  @@index([uretici])
+  @@index([bitisTarihi])
+}
+
+/// Bir lisansin belirli bir cihaza ve/veya personele atanmasi
+model LisansAtama {
+  id            Int       @id @default(autoincrement())
+  lisansId      Int
+  lisans        Lisans    @relation(fields: [lisansId], references: [id], onDelete: Cascade)
+  cihazId       Int?
+  cihaz         Cihaz?    @relation(fields: [cihazId], references: [id], onDelete: SetNull)
+  personelId    Int?
+  personel      Personel? @relation(fields: [personelId], references: [id], onDelete: SetNull)
+  atamaTarihi   DateTime  @default(now())
+  kaldirmaTarihi DateTime?
+  aciklama      String?
+
+  @@index([lisansId])
+  @@index([cihazId])
+  @@index([personelId])
+}
+
+/// Zimmet gecmisi: cihaz kime, ne zaman verildi / geri alindi
+model ZimmetHareketi {
+  id         Int      @id @default(autoincrement())
+  cihazId    Int
+  cihaz      Cihaz    @relation(fields: [cihazId], references: [id], onDelete: Cascade)
+  personelId Int?
+  personel   Personel? @relation(fields: [personelId], references: [id], onDelete: SetNull)
+  tip        String
+  tarih      DateTime @default(now())
+  aciklama   String?
+
+  @@index([cihazId])
+  @@index([personelId])
+  @@index([tarih])
+}

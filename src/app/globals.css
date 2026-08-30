@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/*
+ * Envanter ve Zimmet Takip Sistemi - temel tema
+ * Rapor ciktisi ve ekran goruntusu alinabilmesi icin acik tema kullanilir.
+ */
+
+@theme inline {
+  --color-background: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-foreground: #16191f;
+  --color-muted: #5b6473;
+  --color-line: #e3e6eb;
+  --color-brand: #1f5f9e;
+  --color-brand-soft: #eef4fb;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-code), ui-monospace, SFMono-Regular, monospace;
+}
+
+html,
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+/* Tablolarda uzun iceriklerin sayfayi yatay kaydirmasini engelle */
+.tablo-sarmal {
+  overflow-x: auto;
+}
+
+/* Yazdirma: kenar cubugu ve eylem butonlari cikmasin */
+@media print {
+  .yazdirma-gizle {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  .yazdirma-tam {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
